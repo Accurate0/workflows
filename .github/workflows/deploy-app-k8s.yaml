@@ -39,7 +39,7 @@ jobs:
           ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
         run: |
           argocd app sync ${{ inputs.application-name }} \
-            --server https://argocd.internal.anurag.sh \
+            --server argocd.internal.anurag.sh \
             --revision ${{ github.sha }}
             --apply-out-of-sync-only \
             --server-side \
