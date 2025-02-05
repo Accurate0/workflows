@@ -38,11 +38,12 @@ jobs:
         env:
           ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
         run: |
-          argocd app sync ${{ inputs.application-name }} \
+          output=$(argocd app sync ${{ inputs.application-name }} \
             --server argocd.internal.anurag.sh \
             --grpc-web \
             --revision ${{ github.sha }} \
             --apply-out-of-sync-only \
             --server-side \
-            --output tree \
-            >>  $GITHUB_STEP_SUMMARY
+            --output tree)
+
+          echo "```$output```" >>  $GITHUB_STEP_SUMMARY
