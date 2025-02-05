@@ -40,7 +40,8 @@ jobs:
         run: |
           argocd app sync ${{ inputs.application-name }} \
             --server argocd.internal.anurag.sh \
-            --revision ${{ github.sha }}
+            --grpc-web \
+            --revision ${{ github.sha }} \
             --apply-out-of-sync-only \
             --server-side \
             --output tree \
