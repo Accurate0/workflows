@@ -1,0 +1,46 @@
+on:
+  workflow_call:
+    inputs:
+      application-name:
+        required: true
+        type: string
+    secrets:
+      ARGOCD_AUTH_TOKEN:
+        required: true
+      TS_OAUTH_SECRET:
+        required: true
+      TS_OAUTH_CLIENT_ID:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy to K8S
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          version: 1.76.6
+
+      - name: Install argocd
+        run: |
+          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+          rm argocd-linux-amd64
+
+      - name: Deploy to k8s
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          argocd app sync ${{ inputs.application-name }} \
+            --revision ${{ github.sha }}
+            --apply-out-of-sync-only \
+            --server-side \
+            --output tree \
+            --server https://argocd.internal.anurag.sh >>  $GITHUB_STEP_SUMMARY
