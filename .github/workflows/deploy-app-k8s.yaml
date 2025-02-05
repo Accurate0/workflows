@@ -45,7 +45,6 @@ jobs:
             --revision ${{ github.sha }} \
             --apply-out-of-sync-only \
             --server-side \
-            --output tree)
-          output+='```'
+            --output wide)
 
           echo "$output" >>  $GITHUB_STEP_SUMMARY
