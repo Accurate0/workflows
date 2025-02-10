@@ -40,7 +40,7 @@ jobs:
         run: |
           output='```'
           output+=$(argocd app sync ${{ inputs.application-name }} \
-            --server argocd.internal.anurag.sh \
+            --server argocd.inf-k8s.net \
             --grpc-web \
             --revision ${{ github.sha }} \
             --apply-out-of-sync-only \
