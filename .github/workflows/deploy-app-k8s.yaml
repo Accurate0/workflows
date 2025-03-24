@@ -4,6 +4,10 @@ on:
       application-name:
         required: true
         type: string
+      directory:
+        required: false
+        type: string
+        default: ./
     secrets:
       ARGOCD_AUTH_TOKEN:
         required: true
@@ -16,6 +20,9 @@ jobs:
   deploy:
     name: Deploy to K8S
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.directory }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
