@@ -47,13 +47,13 @@ jobs:
         if: ${{ inputs.use-rust-caching }}
         with:
           path: app-target
-          key: ${{ runner.os }}-app-target-${{ hashFiles('**/Cargo.lock') }}-${{ inputs.directory }}
+          key: ${{ runner.os }}-app-target-${{ hashFiles('**/Cargo.lock') }}-${{ inputs.image-name }}
 
       - uses: actions/cache@v4
         if: ${{ inputs.use-rust-caching }}
         with:
           path: cargo-registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}-${{ inputs.directory }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}-${{ inputs.image-name }}
 
       - uses: reproducible-containers/buildkit-cache-dance@v3.1.2
         if: ${{ inputs.use-rust-caching }}
