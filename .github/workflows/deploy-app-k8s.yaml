@@ -46,35 +46,29 @@ jobs:
           sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
           rm argocd-linux-amd64
 
-      - name: Deploy to k8s (multi-source application)
-        if: ${{ github.event.inputs.source-name }} != ''
+      - name: Deploy to k8s
         env:
           ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
         run: |
           output='```'
-          output+=$(argocd app sync ${{ inputs.application-name }} \
-            --server argocd.inf-k8s.net \
-            --grpc-web \
-            --source-names ${{ inputs.source-name }} \
-            --revisions ${{ github.sha }} \
-            --apply-out-of-sync-only \
-            --server-side \
-            --output wide)
-
-          echo "$output" >>  $GITHUB_STEP_SUMMARY
-
-      - name: Deploy to k8s (single-source application)
-        if: ${{ github.event.inputs.source-name }} == ''
-        env:
-          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
-        run: |
-          output='```'
-          output+=$(argocd app sync ${{ inputs.application-name }} \
-            --server argocd.inf-k8s.net \
-            --grpc-web \
-            --revision ${{ github.sha }} \
-            --apply-out-of-sync-only \
-            --server-side \
-            --output wide)
+          SOURCE_NAMES="${{ inputs.source-name }}"
+          if [ -z "${SOURCE_NAMES}" ]; then
+            output+=$(argocd app sync ${{ inputs.application-name }} \
+              --server argocd.inf-k8s.net \
+              --grpc-web \
+              --revision ${{ github.sha }} \
+              --apply-out-of-sync-only \
+              --server-side \
+              --output wide)
+          else
+            output+=$(argocd app sync ${{ inputs.application-name }} \
+              --server argocd.inf-k8s.net \
+              --grpc-web \
+              --source-names ${{ inputs.source-name }} \
+              --revisions ${{ github.sha }} \
+              --apply-out-of-sync-only \
+              --server-side \
+              --output wide)
+          fi
 
           echo "$output" >>  $GITHUB_STEP_SUMMARY
