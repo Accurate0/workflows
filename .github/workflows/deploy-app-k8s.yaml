@@ -54,7 +54,7 @@ jobs:
             --server argocd.inf-k8s.net \
             --grpc-web \
             --source-names ${{ inputs.source-name }}
-            --revision ${{ github.sha }} \
+            --revisions ${{ github.sha }} \
             --apply-out-of-sync-only \
             --server-side \
             --output wide)
