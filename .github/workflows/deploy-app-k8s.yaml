@@ -11,6 +11,7 @@ on:
       source-name:
         required: false
         type: string
+        default: ""
 
     secrets:
       ARGOCD_AUTH_TOKEN:
@@ -62,7 +63,7 @@ jobs:
 
           echo "$output" >>  $GITHUB_STEP_SUMMARY
 
-      - name: Deploy to k8s (multi-source application)
+      - name: Deploy to k8s (single-source application)
         if: "${{ inputs.source-name }} == ''"
         env:
           ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
