@@ -29,4 +29,5 @@ jobs:
           curl -X PUT "https://config-catalog.inf-k8s.net/v1/$NAMESPACE/$OBJECT" \
             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             -H "X-Config-Catalog-Source: github-actions" \
+            --fail-with-body \
             --data "@${{ inputs.config-file }}" -v
