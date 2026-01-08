@@ -30,4 +30,4 @@ jobs:
             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             -H "X-Config-Catalog-Source: github-actions" \
             --fail-with-body \
-            --data "@${{ inputs.config-file }}" -v
+            --data-binary "@${{ inputs.config-file }}" -v
