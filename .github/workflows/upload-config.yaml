@@ -11,7 +11,7 @@ on:
         required: true
         type: string
     secrets:
-      GITHUB_TOKEN:
+      GHA_TOKEN:
         required: true
 
 jobs:
@@ -27,10 +27,10 @@ jobs:
 
       - name: Upload config file
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHA_TOKEN: ${{ secrets.GHA_TOKEN }}
         run: |
           NAMESPACE="${{ inputs.namespace }}"
           OBJECT="${{ inputs.object-name }}"
           curl -X PUT "https://config-catalog.inf-k8s.net/v1/$NAMESPACE/$OBJECT" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Authorization: Bearer $GHA_TOKEN" \
             --data "@${{ inputs.config-file }}" -v
