@@ -1,0 +1,33 @@
+on:
+  workflow_call:
+    inputs:
+      namespace:
+        required: true
+        type: string
+      object-name:
+        required: true
+        type: string
+      config-file:
+        required: true
+        type: string
+
+jobs:
+  upload-config:
+    permissions:
+      id-token: write
+
+    name: Upload config to catalog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Upload config file
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NAMESPACE="${{ inputs.namespace }}"
+          OBJECT="${{ inputs.object-name }}"
+          curl -X PUT "https://config-catalog.inf-k8s.net/v1/$NAMESPACE/$OBJECT" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            --data "@${{ inputs.config-file }}" -v
