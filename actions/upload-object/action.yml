@@ -117,8 +117,7 @@ runs:
               val=$(echo "$label" | cut -d'=' -f2- | xargs)
               LABEL_HEADERS+=("-H" "x-label-$key: $val")
             fi
-          done <<< "$(echo "$LABELS" | tr ',' '
-')"
+          done <<< "$(echo "$LABELS" | tr ',' '')"
         fi
 
         # Execute curl
