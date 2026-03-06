@@ -36,20 +36,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Docker layers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         if: ${{ inputs.use-rust-caching }}
         with:
           path: app-target
           key: ${{ runner.os }}-app-target-${{ hashFiles('**/Cargo.lock') }}-${{ inputs.image-name }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         if: ${{ inputs.use-rust-caching }}
         with:
           path: cargo-registry
