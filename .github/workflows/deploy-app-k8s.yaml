@@ -30,7 +30,7 @@ jobs:
         working-directory: ${{ inputs.directory }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Tailscale
         uses: tailscale/github-action@v3
