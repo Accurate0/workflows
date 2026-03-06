@@ -55,7 +55,7 @@ jobs:
           path: cargo-registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}-${{ inputs.image-name }}
 
-      - uses: reproducible-containers/buildkit-cache-dance@v3.1.2
+      - uses: reproducible-containers/buildkit-cache-dance@v3.3.2
         if: ${{ inputs.use-rust-caching }}
         with:
           cache-map: |
