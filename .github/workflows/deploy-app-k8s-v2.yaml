@@ -15,6 +15,10 @@ on:
         description: "Image tag or SHA"
         required: true
         type: string
+      manifests-path:
+        description: "Path to manifests in config repo"
+        required: true
+        type: string
       branch:
         description: "Target branch in config repo"
         required: false
@@ -57,10 +61,11 @@ jobs:
       - name: Update Kustomize Images
         env:
           SERVICE_NAME: ${{ inputs.service-name }}
+          MANIFESTS_PATH: ${{ inputs.manifests-path }}
           IMAGES: ${{ inputs.images }}
           TAG: ${{ inputs.tag }}
         run: |
-          cd config-repo/projects/${SERVICE_NAME}/manifests
+          cd config-repo/${MANIFESTS_PATH}
           IFS=',' read -ra IMAGE_LIST <<< "$IMAGES"
           for image in "${IMAGE_LIST[@]}"; do
             echo "Updating image $image to tag $TAG"
@@ -71,10 +76,11 @@ jobs:
       - name: Commit and Push
         env:
           SERVICE_NAME: ${{ inputs.service-name }}
+          MANIFESTS_PATH: ${{ inputs.manifests-path }}
           TARGET_BRANCH: ${{ inputs.branch }}
           TAG: ${{ inputs.tag }}
         run: |
           cd config-repo
-          git add projects/${SERVICE_NAME}/manifests
+          git add ${MANIFESTS_PATH}
           git commit -m "[ci skip] Update ${SERVICE_NAME} images to $TAG" || echo "No changes to commit"
           git push origin ${TARGET_BRANCH}
