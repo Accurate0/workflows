@@ -45,12 +45,17 @@ jobs:
           git config --global user.name "ci-image-updater"
           git config --global user.email "ci-image-updater@inf-k8s.net"
 
+      - name: Configure git credentials
+        run: |
+          git config --global credential.helper store
+          echo "https://x-access-token:${FORGEJO_TOKEN}@git.anruag.sh" > ~/.git-credentials
+
       - name: Clone Config Repo
         env:
           FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
           TARGET_BRANCH: ${{ inputs.branch }}
         run: |
-          git clone https://x-access-token:${FORGEJO_TOKEN}@git.anurag.sh/anurag/k8s.git config-repo
+          git clone https://git.anurag.sh/anurag/k8s.git config-repo
           cd config-repo
           git checkout ${TARGET_BRANCH}
 
