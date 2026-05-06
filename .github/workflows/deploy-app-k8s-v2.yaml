@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl git
+          sudo apt-get install -y curl git yq
           curl -LO https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.0.1/kustomize_v5.0.1_linux_amd64.tar.gz
           tar -xzf kustomize_v5.0.1_linux_amd64.tar.gz
           sudo mv kustomize /usr/local/bin/
@@ -66,7 +66,7 @@ jobs:
             echo "Updating image $image to tag $TAG"
             kustomize edit set image ${image}:${TAG}
           done
-          kustomize cfg fmt kustomization.yaml
+          yq -I2 -P -i kustomization.yaml
 
       - name: Commit and Push
         env:
