@@ -66,11 +66,13 @@ jobs:
             echo "Updating image $image to tag $TAG"
             kustomize edit set image ${image}:${TAG}
           done
+          kustomize cfg fmt kustomization.yaml
 
       - name: Commit and Push
         env:
           SERVICE_NAME: ${{ inputs.service-name }}
           TARGET_BRANCH: ${{ inputs.branch }}
+          TAG: ${{ inputs.tag }}
         run: |
           cd config-repo
           git add services/${SERVICE_NAME}/manifests
