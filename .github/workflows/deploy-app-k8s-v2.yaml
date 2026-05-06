@@ -1,0 +1,78 @@
+name: Update Config Repo
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: "The service being deployed"
+        required: true
+        type: string
+      images:
+        description: "Comma-separated list of image names (registry/service-name)"
+        required: true
+        type: string
+      tag:
+        description: "Image tag or SHA"
+        required: true
+        type: string
+      branch:
+        description: "Target branch in config repo"
+        required: false
+        type: string
+        default: "main"
+    secrets:
+      FORGEJO_TOKEN:
+        description: "Access token for CI bot user"
+
+jobs:
+  update-config:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl git
+          curl -LO https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.0.1/kustomize_v5.0.1_linux_amd64.tar.gz
+          tar -xzf kustomize_v5.0.1_linux_amd64.tar.gz
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "ci-image-updater"
+          git config --global user.email "ci-image-updater@inf-k8s.net"
+
+      - name: Clone Config Repo
+        env:
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+        run: |
+          git clone https://x-access-token:${FORGEJO_TOKEN}@git.anurag.sh/anurag/k8s.git config-repo
+          cd config-repo
+          git checkout ${TARGET_BRANCH}
+
+      - name: Update Kustomize Images
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          IMAGES: ${{ inputs.images }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          cd config-repo/services/${SERVICE_NAME}/manifests
+          IFS=',' read -ra IMAGE_LIST <<< "$IMAGES"
+          for image in "${IMAGE_LIST[@]}"; do
+            echo "Updating image $image to tag $TAG"
+            kustomize edit set image ${image}:${TAG}
+          done
+
+      - name: Commit and Push
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+        run: |
+          cd config-repo
+          git add services/${SERVICE_NAME}/manifests
+          git commit -m "[ci skip] Update ${SERVICE_NAME} images to $TAG" || echo "No changes to commit"
+          git push origin ${TARGET_BRANCH}
