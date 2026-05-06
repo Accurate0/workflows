@@ -60,7 +60,7 @@ jobs:
           IMAGES: ${{ inputs.images }}
           TAG: ${{ inputs.tag }}
         run: |
-          cd config-repo/services/${SERVICE_NAME}/manifests
+          cd config-repo/projects/${SERVICE_NAME}/manifests
           IFS=',' read -ra IMAGE_LIST <<< "$IMAGES"
           for image in "${IMAGE_LIST[@]}"; do
             echo "Updating image $image to tag $TAG"
@@ -75,6 +75,6 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           cd config-repo
-          git add services/${SERVICE_NAME}/manifests
+          git add projects/${SERVICE_NAME}/manifests
           git commit -m "[ci skip] Update ${SERVICE_NAME} images to $TAG" || echo "No changes to commit"
           git push origin ${TARGET_BRANCH}
