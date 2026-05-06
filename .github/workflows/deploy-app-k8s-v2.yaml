@@ -82,5 +82,7 @@ jobs:
         run: |
           cd config-repo
           git add ${MANIFESTS_PATH}
-          git commit -m "[ci skip] Update ${SERVICE_NAME} images to $TAG" || echo "No changes to commit"
+          # pull just before trying to commit & push
+          git pull --rebase
+          git commit -m "[skip ci] Update ${SERVICE_NAME} images to $TAG" || echo "No changes to commit"
           git push origin ${TARGET_BRANCH}
