@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: "main"
+      raiseAsPR:
+        description: "Raise a PR on Forgejo instead of committing directly to the target branch"
+        required: false
+        type: boolean
+        default: false
     secrets:
       FORGEJO_TOKEN:
         description: "Access token for CI bot user"
@@ -74,6 +79,7 @@ jobs:
           yq -I2 -P -i kustomization.yaml
 
       - name: Commit and Push
+        if: ${{ !inputs.raiseAsPR }}
         env:
           SERVICE_NAME: ${{ inputs.service-name }}
           MANIFESTS_PATH: ${{ inputs.manifests-path }}
@@ -86,3 +92,25 @@ jobs:
           git pull --rebase
           git commit -m "[skip ci] Update ${SERVICE_NAME} images to $TAG" || echo "No changes to commit"
           git push origin ${TARGET_BRANCH}
+
+      - name: Commit and Raise PR
+        if: ${{ inputs.raiseAsPR }}
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          MANIFESTS_PATH: ${{ inputs.manifests-path }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          TAG: ${{ inputs.tag }}
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+        run: |
+          cd config-repo
+          PR_BRANCH="ci/update-${SERVICE_NAME}-${TAG}"
+          git checkout -b ${PR_BRANCH}
+          git add ${MANIFESTS_PATH}
+          git commit -m "[skip ci] Update ${SERVICE_NAME} images to $TAG" || { echo "No changes to commit"; exit 0; }
+          git push origin ${PR_BRANCH}
+          BODY="## Image Update\n\n| Field | Value |\n|-------|-------|\n| **Service** | \`${SERVICE_NAME}\` |\n| **Tag** | \`${TAG}\` |\n| **Manifests Path** | \`${MANIFESTS_PATH}\` |\n| **Target Branch** | \`${TARGET_BRANCH}\` |\n\n**Triggered by:** [${{ github.repository }}@${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          curl -s -X POST \
+            -H "Authorization: token ${FORGEJO_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"[skip ci] Update ${SERVICE_NAME} images to ${TAG}\",\"head\":\"${PR_BRANCH}\",\"base\":\"${TARGET_BRANCH}\",\"body\":\"${BODY}\"}" \
+            https://git.anurag.sh/api/v1/repos/anurag/k8s/pulls
