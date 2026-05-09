@@ -28,7 +28,7 @@ on:
         description: "Raise a PR on Forgejo instead of committing directly to the target branch"
         required: false
         type: boolean
-        default: false
+        default: true
     secrets:
       FORGEJO_TOKEN:
         description: "Access token for CI bot user"
