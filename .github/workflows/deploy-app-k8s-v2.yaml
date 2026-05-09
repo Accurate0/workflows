@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl git
+          sudo apt-get install -y curl git jq
           curl -LO https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.0.1/kustomize_v5.0.1_linux_amd64.tar.gz
           tar -xzf kustomize_v5.0.1_linux_amd64.tar.gz
           sudo mv kustomize /usr/local/bin/
@@ -108,9 +108,39 @@ jobs:
           git add ${MANIFESTS_PATH}
           git commit -m "[skip ci] Update ${SERVICE_NAME} images to $TAG" || { echo "No changes to commit"; exit 0; }
           git push -f origin ${PR_BRANCH}
-          BODY="## Image Update\n\n| Field | Value |\n|-------|-------|\n| **Service** | \`${SERVICE_NAME}\` |\n| **Tag** | \`${TAG}\` |\n| **Manifests Path** | \`${MANIFESTS_PATH}\` |\n| **Target Branch** | \`${TARGET_BRANCH}\` |\n\n**Triggered by:** [${{ github.repository }}@${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          curl -s -X POST \
+          BODY=$(cat <<PREOF
+          ## Image Update
+
+          | Field | Value |
+          |-------|-------|
+          | **Service** | \`${SERVICE_NAME}\` |
+          | **Tag** | \`${TAG}\` |
+          | **Manifests Path** | \`${MANIFESTS_PATH}\` |
+          | **Target Branch** | \`${TARGET_BRANCH}\` |
+
+          **Triggered by:** [${{ github.repository }}@${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          PREOF
+          )
+          PAYLOAD=$(jq -n \
+            --arg title "[skip ci] Update ${SERVICE_NAME} images to ${TAG}" \
+            --arg head "${PR_BRANCH}" \
+            --arg base "${TARGET_BRANCH}" \
+            --arg body "${BODY}" \
+            '{title: $title, head: $head, base: $base, body: $body}')
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Authorization: token ${FORGEJO_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"title\":\"[skip ci] Update ${SERVICE_NAME} images to ${TAG}\",\"head\":\"${PR_BRANCH}\",\"base\":\"${TARGET_BRANCH}\",\"body\":\"${BODY}\"}" \
-            https://git.anurag.sh/api/v1/repos/anurag/k8s/pulls
+            -d "${PAYLOAD}" \
+            https://git.anurag.sh/api/v1/repos/anurag/k8s/pulls)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | sed '$d')
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "PR created successfully"
+            echo "$RESPONSE_BODY" | jq -r '.html_url'
+          elif [ "$HTTP_CODE" -eq 409 ]; then
+            echo "PR already exists for branch ${PR_BRANCH}"
+          else
+            echo "Failed to create PR (HTTP ${HTTP_CODE}):"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
