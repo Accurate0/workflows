@@ -52,7 +52,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "ci-image-updater"
-          git config --global user.email "ci-image-updater@inf-k8s.net"
+          git config --global user.email "ci-image-updater@git.anurag.sh"
 
       - name: Clone Config Repo
         env:
