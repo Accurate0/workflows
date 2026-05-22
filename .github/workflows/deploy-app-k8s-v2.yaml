@@ -117,6 +117,8 @@ jobs:
           | **Target Branch** | \`${TARGET_BRANCH}\` |
 
           **Triggered by:** [${{ github.repository }}@${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          <!-- metadata:{"service":"${SERVICE_NAME}","tag":"${TAG}","path":"${MANIFESTS_PATH}","branch":"${TARGET_BRANCH}","repo":"${{ github.repository }}","ref":"${{ github.ref_name }}","run":"${{ github.run_id }}"} -->
           PREOF
           )
           PAYLOAD=$(jq -n \
