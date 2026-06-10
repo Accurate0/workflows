@@ -102,9 +102,10 @@ jobs:
         run: |
           cd config-repo
           PR_BRANCH="ci/update-${SERVICE_NAME}-${TAG}"
+          TITLE_AND_COMMIT="chore(deploy): update ${SERVICE_NAME} images to $TAG [skip ci]"
           git checkout -b ${PR_BRANCH}
           git add ${MANIFESTS_PATH}
-          git commit -m "chore(deploy): update ${SERVICE_NAME} images to $TAG [skip ci]" || { echo "No changes to commit"; exit 0; }
+          git commit -m "${TITLE_AND_COMMIT}" || { echo "No changes to commit"; exit 0; }
           git push -f origin ${PR_BRANCH}
           BODY=$(cat <<PREOF
           ## Image Update
@@ -122,7 +123,7 @@ jobs:
           PREOF
           )
           PAYLOAD=$(jq -n \
-            --arg title "[skip ci] Update ${SERVICE_NAME} images to ${TAG}" \
+            --arg title "${TITLE_AND_COMMIT}" \
             --arg head "${PR_BRANCH}" \
             --arg base "${TARGET_BRANCH}" \
             --arg body "${BODY}" \
