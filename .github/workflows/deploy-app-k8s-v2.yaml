@@ -104,7 +104,7 @@ jobs:
           PR_BRANCH="ci/update-${SERVICE_NAME}-${TAG}"
           git checkout -b ${PR_BRANCH}
           git add ${MANIFESTS_PATH}
-          git commit -m "[skip ci] Update ${SERVICE_NAME} images to $TAG" || { echo "No changes to commit"; exit 0; }
+          git commit -m "chore(deploy): update ${SERVICE_NAME} images to $TAG [skip ci]" || { echo "No changes to commit"; exit 0; }
           git push -f origin ${PR_BRANCH}
           BODY=$(cat <<PREOF
           ## Image Update
