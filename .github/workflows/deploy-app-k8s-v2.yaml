@@ -99,7 +99,9 @@ jobs:
           TARGET_BRANCH: ${{ inputs.branch }}
           TAG: ${{ inputs.tag }}
           FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
+          COMMITTED_AT=$(git show -s --format=%ct ${COMMIT_SHA})
           cd config-repo
           PR_BRANCH="ci/update-${SERVICE_NAME}-${TAG}"
           TITLE_AND_COMMIT="chore(deploy): update ${SERVICE_NAME} images to $TAG [skip ci]"
@@ -119,7 +121,7 @@ jobs:
 
           **Triggered by:** [${{ github.repository }}@${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-          <!-- metadata:{"service":"${SERVICE_NAME}","tag":"${TAG}","path":"${MANIFESTS_PATH}","branch":"${TARGET_BRANCH}","repo":"${{ github.repository }}","ref":"${{ github.ref_name }}","run":"${{ github.run_id }}"} -->
+          <!-- metadata:{"service":"${SERVICE_NAME}","tag":"${TAG}","path":"${MANIFESTS_PATH}","branch":"${TARGET_BRANCH}","repo":"${{ github.repository }}","ref":"${{ github.ref_name }}","run":"${{ github.run_id }}","sha":"${COMMIT_SHA}","committed_at":"${COMMITTED_AT}"} -->
           PREOF
           )
           PAYLOAD=$(jq -n \
