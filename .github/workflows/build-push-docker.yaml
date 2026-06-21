@@ -13,9 +13,6 @@ on:
       use-rust-caching:
         required: true
         type: boolean
-    secrets:
-      docker-build-secrets:
-        required: false
 
 jobs:
   build:
@@ -76,7 +73,6 @@ jobs:
           push: true
           tags: ghcr.io/accurate0/${{ inputs.image-name }}:latest,ghcr.io/accurate0/${{ inputs.image-name }}:${{ github.sha }}
           build-args: ${{ inputs.docker-build-args }}
-          secrets: ${{ secrets.docker-build-secrets }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
 
