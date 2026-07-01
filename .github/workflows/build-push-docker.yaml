@@ -28,6 +28,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
+      - name: Compute commit metadata
+        id: commit-meta
+        run: echo "committed-at=$(git show -s --format=%ct ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -75,6 +79,9 @@ jobs:
           context: ${{ inputs.directory }}
           push: true
           tags: ghcr.io/accurate0/${{ inputs.image-name }}:latest,ghcr.io/accurate0/${{ inputs.image-name }}:${{ github.sha }}
+          labels: |
+            net.inf-k8s.commit-sha=${{ github.sha }}
+            net.inf-k8s.committed-at=${{ steps.commit-meta.outputs.committed-at }}
           build-args: ${{ inputs.docker-build-args }}
           secrets: ${{ secrets.docker-build-secrets }}
           cache-from: type=local,src=/tmp/.buildx-cache
