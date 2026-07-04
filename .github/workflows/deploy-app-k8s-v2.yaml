@@ -104,7 +104,8 @@ jobs:
         run: |
           COMMITTED_AT=$(git show -s --format=%ct ${COMMIT_SHA})
           cd config-repo
-          PR_BRANCH="ci/update-${SERVICE_NAME}-${TAG}"
+          WORKFLOW_SLUG=$(echo "${{ github.workflow }}" | tr '[:upper:] ' '[:lower:]-')
+          PR_BRANCH="ci/update-${SERVICE_NAME}-${WORKFLOW_SLUG}-${TAG}"
           TITLE_AND_COMMIT="chore(deploy): update ${SERVICE_NAME} images to $TAG [skip ci]"
           git checkout -b ${PR_BRANCH}
           git add ${MANIFESTS_PATH}
