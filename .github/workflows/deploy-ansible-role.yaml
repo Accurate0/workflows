@@ -1,0 +1,140 @@
+name: Update Ansible Role
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: "The service being deployed"
+        required: true
+        type: string
+      tag:
+        description: "Image tag or SHA"
+        required: true
+        type: string
+      vars-file:
+        description: "Path to the ansible vars/defaults file in the config repo"
+        required: true
+        type: string
+      field:
+        description: "The yaml key in vars-file to set to the tag"
+        required: true
+        type: string
+      branch:
+        description: "Target branch in config repo"
+        required: false
+        type: string
+        default: "main"
+      raiseAsPR:
+        description: "Raise a PR on Forgejo instead of committing directly to the target branch"
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      FORGEJO_TOKEN:
+        description: "Access token for CI bot user"
+
+jobs:
+  update-config:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "ci-image-updater"
+          git config --global user.email "ci-image-updater@git.anurag.sh"
+
+      - name: Clone Config Repo
+        env:
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+        run: |
+          git clone https://x-access-token:${FORGEJO_TOKEN}@git.anurag.sh/anurag/k8s.git config-repo
+          cd config-repo
+          git checkout ${TARGET_BRANCH}
+
+      - name: Update Ansible Field
+        env:
+          VARS_FILE: ${{ inputs.vars-file }}
+          FIELD: ${{ inputs.field }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          cd config-repo
+          echo "Setting ${FIELD} to ${TAG} in ${VARS_FILE}"
+          FIELD="${FIELD}" TAG="${TAG}" yq -I2 -i '.[strenv(FIELD)] = strenv(TAG)' "${VARS_FILE}"
+
+      - name: Commit and Push
+        if: ${{ !inputs.raiseAsPR }}
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          VARS_FILE: ${{ inputs.vars-file }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          cd config-repo
+          git add ${VARS_FILE}
+          git pull --rebase
+          git commit -m "[skip ci] Update ${SERVICE_NAME} image tag to $TAG" || echo "No changes to commit"
+          git push origin ${TARGET_BRANCH}
+
+      - name: Commit and Raise PR
+        if: ${{ inputs.raiseAsPR }}
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          VARS_FILE: ${{ inputs.vars-file }}
+          FIELD: ${{ inputs.field }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          TAG: ${{ inputs.tag }}
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          COMMITTED_AT=$(git show -s --format=%ct ${COMMIT_SHA})
+          cd config-repo
+          WORKFLOW_SLUG=$(echo "${{ github.workflow }}" | tr '[:upper:] ' '[:lower:]-')
+          PR_BRANCH="ci/update-${SERVICE_NAME}-${WORKFLOW_SLUG}-${TAG}"
+          TITLE_AND_COMMIT="chore(deploy): update ${SERVICE_NAME} image tag to $TAG [skip ci]"
+          git checkout -b ${PR_BRANCH}
+          git add ${VARS_FILE}
+          git commit -m "${TITLE_AND_COMMIT}" || { echo "No changes to commit"; exit 0; }
+          git push -f origin ${PR_BRANCH}
+          BODY=$(cat <<PREOF
+          ## Image Tag Update
+
+          | Field | Value |
+          |-------|-------|
+          | **Service** | \`${SERVICE_NAME}\` |
+          | **Tag** | \`${TAG}\` |
+          | **Vars File** | \`${VARS_FILE}\` |
+          | **Field** | \`${FIELD}\` |
+          | **Target Branch** | \`${TARGET_BRANCH}\` |
+
+          **Triggered by:** [${{ github.repository }}@${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          <!-- metadata:{"service":"${SERVICE_NAME}","tag":"${TAG}","vars_file":"${VARS_FILE}","field":"${FIELD}","branch":"${TARGET_BRANCH}","repo":"${{ github.repository }}","ref":"${{ github.ref_name }}","run":"${{ github.run_id }}","sha":"${COMMIT_SHA}","committed_at":"${COMMITTED_AT}"} -->
+          PREOF
+          )
+          PAYLOAD=$(jq -n \
+            --arg title "${TITLE_AND_COMMIT}" \
+            --arg head "${PR_BRANCH}" \
+            --arg base "${TARGET_BRANCH}" \
+            --arg body "${BODY}" \
+            '{title: $title, head: $head, base: $base, body: $body}')
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: token ${FORGEJO_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "${PAYLOAD}" \
+            https://git.anurag.sh/api/v1/repos/anurag/k8s/pulls)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | sed '$d')
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "PR created successfully"
+            echo "$RESPONSE_BODY" | jq -r '.html_url'
+          elif [ "$HTTP_CODE" -eq 409 ]; then
+            echo "PR already exists for branch ${PR_BRANCH}"
+          else
+            echo "Failed to create PR (HTTP ${HTTP_CODE}):"
+            echo "$RESPONSE_BODY"
+            exit 1
+          fi
