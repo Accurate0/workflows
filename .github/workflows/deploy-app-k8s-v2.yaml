@@ -20,7 +20,7 @@ on:
         required: true
         type: string
       values-file:
-        description: "Helm values file in config repo holding the image tag; replaces the kustomize update when set"
+        description: "Helm values file in config repo holding image tags; replaces the kustomize update when set"
         required: false
         type: string
         default: ""
@@ -70,10 +70,14 @@ jobs:
         if: ${{ inputs.values-file != '' }}
         env:
           VALUES_FILE: ${{ inputs.values-file }}
+          IMAGES: ${{ inputs.images }}
           TAG: ${{ inputs.tag }}
         run: |
           cd config-repo
-          yq -I2 -P -i '.tag = strenv(TAG)' "${VALUES_FILE}"
+          IFS=',' read -ra IMAGE_LIST <<< "$IMAGES"
+          for image in "${IMAGE_LIST[@]}"; do
+            IMAGE="$image" yq -I2 -P -i '.images[strenv(IMAGE)] = strenv(TAG)' "${VALUES_FILE}"
+          done
           git add "${VALUES_FILE}"
 
       - name: Update Kustomize Images
