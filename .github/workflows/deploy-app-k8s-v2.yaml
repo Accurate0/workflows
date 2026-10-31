@@ -19,6 +19,11 @@ on:
         description: "Path to manifests in config repo"
         required: true
         type: string
+      values-file:
+        description: "Helm values file in config repo holding the image tag; replaces the kustomize update when set"
+        required: false
+        type: string
+        default: ""
       branch:
         description: "Target branch in config repo"
         required: false
@@ -61,7 +66,18 @@ jobs:
           cd config-repo
           git checkout ${TARGET_BRANCH}
 
+      - name: Update Values File
+        if: ${{ inputs.values-file != '' }}
+        env:
+          VALUES_FILE: ${{ inputs.values-file }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          cd config-repo
+          yq -I2 -P -i '.tag = strenv(TAG)' "${VALUES_FILE}"
+          git add "${VALUES_FILE}"
+
       - name: Update Kustomize Images
+        if: ${{ inputs.values-file == '' }}
         env:
           SERVICE_NAME: ${{ inputs.service-name }}
           MANIFESTS_PATH: ${{ inputs.manifests-path }}
