@@ -29,6 +29,7 @@ on:
 
 jobs:
   update:
+    name: update ${{ inputs.service-name }}-${{ inputs.update-name }}
     runs-on: docker
     defaults:
       run:

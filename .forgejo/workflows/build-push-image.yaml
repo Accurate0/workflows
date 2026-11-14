@@ -33,6 +33,7 @@ enable-openid-connect: true
 
 jobs:
   build:
+    name: ${{ inputs.image-name }}
     runs-on: docker
     env:
       IMAGE: registry.anurag.sh/containers/${{ inputs.image-name }}
