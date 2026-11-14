@@ -1,0 +1,71 @@
+name: Set up cargo-zigbuild
+description: Install rust, zig, cargo-zigbuild and the macOS SDK to cross-build linux-amd64 and darwin-arm64 binaries
+
+inputs:
+  toolchain:
+    description: Rust toolchain to install
+    required: false
+    default: "1.99.1"
+  targets:
+    description: Space-separated rust targets to add
+    required: false
+    default: x86_64-unknown-linux-gnu aarch64-apple-darwin
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      with:
+        path: ~/.cache/zigbuild/downloads
+        key: zigbuild-zig-0.16.0-cargo-zigbuild-0.24.0-macos-11.3
+
+    - name: Install toolchain
+      shell: bash
+      env:
+        TOOLCHAIN: ${{ inputs.toolchain }}
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        set -euo pipefail
+        root="$HOME/.cache/zigbuild"
+        downloads="$root/downloads"
+        mkdir -p "$downloads" "$root/bin"
+
+        fetch() {
+          local url="$1" sha="$2" file="$downloads/$3"
+          if [ ! -f "$file" ]; then
+            curl -fsSL -o "$file.tmp" "$url"
+            mv "$file.tmp" "$file"
+          fi
+          echo "$sha  $file" | sha256sum -c --quiet -
+        }
+
+        fetch https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz \
+          70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00 zig.tar.xz
+        fetch https://github.com/rust-cross/cargo-zigbuild/releases/download/v0.24.0/cargo-zigbuild-x86_64-unknown-linux-gnu.tar.xz \
+          3ca25ee4348f9abd0932ed4debe826d246e20fb616d0201de5bd05e7f965e9d9 cargo-zigbuild.tar.xz
+        fetch https://github.com/joseluisq/macosx-sdks/releases/download/11.3/MacOSX11.3.sdk.tar.xz \
+          9adc1373d3879e1973d28ad9f17c9051b02931674a3ec2a2498128989ece2cb1 macos-sdk.tar.xz
+
+        tar -xJf "$downloads/zig.tar.xz" -C "$root"
+        tar -xJf "$downloads/cargo-zigbuild.tar.xz" -C "$root/bin" --strip-components=1 --wildcards '*/cargo-zigbuild'
+        tar -xJf "$downloads/macos-sdk.tar.xz" -C "$root"
+
+        if ! command -v cmake >/dev/null || ! command -v protoc >/dev/null; then
+          apt-get update -q
+          apt-get install -yq --no-install-recommends cmake protobuf-compiler
+        fi
+
+        if ! command -v rustup >/dev/null && [ ! -x "$HOME/.cargo/bin/rustup" ]; then
+          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+        fi
+        export PATH="$HOME/.cargo/bin:$PATH"
+        read -ra targets <<< "$TARGETS"
+        rustup toolchain install "$TOOLCHAIN" --profile minimal --target "${targets[@]}"
+        rustup default "$TOOLCHAIN"
+
+        {
+          echo "$HOME/.cargo/bin"
+          echo "$root/zig-x86_64-linux-0.16.0"
+          echo "$root/bin"
+        } >> "$GITHUB_PATH"
+        echo "SDKROOT=$root/MacOSX11.3.sdk" >> "$GITHUB_ENV"

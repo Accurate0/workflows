@@ -3,7 +3,7 @@ description: Install the latest ortzi CLI, and optionally ortzi packages, from r
 
 inputs:
   packages:
-    description: Space-separated ortzi packages to install, e.g. "app"
+    description: Space-separated ortzi packages to install, e.g. "app helm"
     required: false
     default: ""
 
@@ -15,16 +15,19 @@ runs:
       env:
         PACKAGES: ${{ inputs.packages }}
       run: |
+        set -euo pipefail
         curl -fsSL https://registry.anurag.sh/install.sh | sh
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.local/bin:$PATH"
+        dirname "$(command -v ortzi)" >> "$GITHUB_PATH"
 
         if [ -z "$PACKAGES" ]; then
           exit 0
         fi
 
+        ortzi bin-dir >> "$GITHUB_PATH"
         read -ra packages <<< "$PACKAGES"
         for attempt in 1 2 3; do
-          if "$HOME/.local/bin/ortzi" install --force "${packages[@]}"; then
+          if ortzi install --force "${packages[@]}"; then
             exit 0
           fi
           echo "attempt $attempt/3 failed: ortzi install ${packages[*]}"
