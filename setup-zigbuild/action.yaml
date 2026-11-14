@@ -60,8 +60,9 @@ runs:
         fi
         export PATH="$HOME/.cargo/bin:$PATH"
         read -ra targets <<< "$TARGETS"
-        rustup toolchain install "$TOOLCHAIN" --profile minimal --target "${targets[@]}"
+        rustup toolchain install "$TOOLCHAIN" --profile minimal
         rustup default "$TOOLCHAIN"
+        rustup target add "${targets[@]}"
 
         {
           echo "$HOME/.cargo/bin"
