@@ -47,11 +47,8 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
-      - name: Install ortzi
+      - uses: https://git.anurag.sh/anurag/workflows/setup-ortzi@main
         if: env.PUSH == 'true'
-        run: |-
-          curl -fsSL https://registry.anurag.sh/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Log in to harbor
         id: login

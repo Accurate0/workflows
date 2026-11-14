@@ -1,0 +1,33 @@
+name: Set up ortzi
+description: Install the latest ortzi CLI, and optionally ortzi packages, from registry.anurag.sh
+
+inputs:
+  packages:
+    description: Space-separated ortzi packages to install, e.g. "app"
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install ortzi
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        curl -fsSL https://registry.anurag.sh/install.sh | sh
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+        if [ -z "$PACKAGES" ]; then
+          exit 0
+        fi
+
+        read -ra packages <<< "$PACKAGES"
+        for attempt in 1 2 3; do
+          if "$HOME/.local/bin/ortzi" install --force "${packages[@]}"; then
+            exit 0
+          fi
+          echo "attempt $attempt/3 failed: ortzi install ${packages[*]}"
+          sleep 30
+        done
+        exit 1
