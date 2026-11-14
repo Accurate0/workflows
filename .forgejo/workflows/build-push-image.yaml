@@ -16,6 +16,11 @@ on:
         required: false
         type: string
         default: ""
+      npm-audience:
+        description: authorized integration audience; its JWT is passed as the node_auth_token build secret
+        required: false
+        type: string
+        default: ""
     secrets:
       SECRET_BUILD_ARGS:
         description: extra build args that hold secret values
@@ -52,6 +57,18 @@ jobs:
         if: env.PUSH == 'true'
         run: ortzi registry login containers:push
 
+      - name: Mint package registry token
+        id: npm
+        if: inputs.npm-audience != ''
+        env:
+          AUDIENCE: ${{ inputs.npm-audience }}
+        run: |
+          token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE" | jq -r .value)
+          echo "::add-mask::$token"
+          printf '%s' "$token" > "$RUNNER_TEMP/node_auth_token"
+          echo "file=$RUNNER_TEMP/node_auth_token" >> "$GITHUB_OUTPUT"
+
       - id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
@@ -66,6 +83,7 @@ jobs:
             ${{ inputs.build-args }}
             ${{ secrets.SECRET_BUILD_ARGS }}
           secrets: ${{ secrets.BUILD_SECRETS }}
+          secret-files: ${{ steps.npm.outputs.file && format('node_auth_token={0}', steps.npm.outputs.file) || '' }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: ${{ env.PUSH == 'true' && format('type=registry,ref={0}:buildcache,mode=max', env.IMAGE) || '' }}
 
