@@ -16,6 +16,13 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      SECRET_BUILD_ARGS:
+        description: extra build args that hold secret values
+        required: false
+      BUILD_SECRETS:
+        description: buildkit secrets, id=value per line
+        required: false
 
 enable-openid-connect: true
 
@@ -55,7 +62,10 @@ jobs:
           labels: |-
             net.inf-k8s.commit-sha=${{ github.sha }}
             net.inf-k8s.committed-at=${{ steps.commit-meta.outputs.committed-at }}
-          build-args: ${{ inputs.build-args }}
+          build-args: |
+            ${{ inputs.build-args }}
+            ${{ secrets.SECRET_BUILD_ARGS }}
+          secrets: ${{ secrets.BUILD_SECRETS }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: ${{ env.PUSH == 'true' && format('type=registry,ref={0}:buildcache,mode=max', env.IMAGE) || '' }}
 
