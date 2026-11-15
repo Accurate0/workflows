@@ -59,7 +59,7 @@ jobs:
           cd config-repo
 
           PR_BRANCH="ci/update-$SERVICE_NAME-$UPDATE_NAME-$TAG"
-          TITLE="chore(deploy): update $SERVICE_NAME images to $TAG [skip ci]"
+          TITLE="chore(deploy): update $SERVICE_NAME images to $TAG"
           git checkout -b "$PR_BRANCH"
 
           IFS=',' read -ra IMAGE_LIST <<< "$IMAGES"
