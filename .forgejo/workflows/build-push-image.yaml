@@ -28,6 +28,10 @@ on:
       BUILD_SECRETS:
         description: buildkit secrets, id=value per line
         required: false
+    outputs:
+      digest:
+        description: digest of the pushed image, empty when nothing was pushed
+        value: ${{ jobs.build.outputs.digest }}
 
 enable-openid-connect: true
 
@@ -35,6 +39,8 @@ jobs:
   build:
     name: ${{ inputs.image-name }}
     runs-on: docker
+    outputs:
+      digest: ${{ env.PUSH == 'true' && steps.build.outputs.digest || '' }}
     env:
       IMAGE: registry.anurag.sh/containers/${{ inputs.image-name }}
       PUSH: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}

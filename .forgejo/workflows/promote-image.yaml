@@ -1,0 +1,34 @@
+name: Promote image
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: the app.yaml name that runs the image
+        required: true
+        type: string
+      image:
+        description: image ref without tag, e.g. registry.anurag.sh/containers/spotify
+        required: true
+        type: string
+      digest:
+        description: signed digest to promote, from build-push-image
+        required: true
+        type: string
+
+enable-openid-connect: true
+
+jobs:
+  promote:
+    name: promote ${{ inputs.app }}
+    runs-on: docker
+    steps:
+      - uses: https://git.anurag.sh/anurag/workflows/setup-ortzi@main
+        with:
+          packages: app
+
+      - name: Promote image
+        env:
+          APP: ${{ inputs.app }}
+          IMAGE: ${{ inputs.image }}
+          DIGEST: ${{ inputs.digest }}
+        run: ortzi app promote "$APP" --image "$IMAGE@$DIGEST"
