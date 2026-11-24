@@ -46,6 +46,8 @@ jobs:
       PUSH: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
       - name: Compute commit metadata
         id: commit-meta
@@ -55,6 +57,15 @@ jobs:
 
       - uses: https://git.anurag.sh/anurag/workflows/setup-ortzi@main
         if: env.PUSH == 'true'
+        with:
+          packages: app
+
+      - name: Compute release tag
+        id: version
+        if: env.PUSH == 'true'
+        env:
+          DIRECTORY: ${{ inputs.directory }}
+        run: echo "tag=$(ortzi app version --path "$DIRECTORY")" >> "$GITHUB_OUTPUT"
 
       - name: Log in to harbor
         id: login
@@ -79,8 +90,8 @@ jobs:
           context: ${{ inputs.directory }}
           file: ${{ inputs.dockerfile || format('{0}/Dockerfile', inputs.directory) }}
           push: ${{ env.PUSH == 'true' }}
-          # flux's ImagePolicy deploys the newest main-<commit time>-<sha> tag
-          tags: ${{ env.IMAGE }}:latest,${{ env.IMAGE }}:${{ github.sha }},${{ env.IMAGE }}:main-${{ steps.commit-meta.outputs.committed-at }}-${{ github.sha }}
+          # flux's ImagePolicy deploys the highest v1.0.<n>-<sha> tag
+          tags: ${{ env.IMAGE }}:latest,${{ env.IMAGE }}:${{ github.sha }}${{ steps.version.outputs.tag && format(',{0}:{1}', env.IMAGE, steps.version.outputs.tag) || '' }}
           labels: |-
             net.inf-k8s.commit-sha=${{ github.sha }}
             net.inf-k8s.committed-at=${{ steps.commit-meta.outputs.committed-at }}
