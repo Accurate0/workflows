@@ -50,9 +50,9 @@ runs:
         tar -xJf "$downloads/cargo-zigbuild.tar.xz" -C "$root/bin" --strip-components=1 --wildcards '*/cargo-zigbuild'
         tar -xJf "$downloads/macos-sdk.tar.xz" -C "$root"
 
-        if ! command -v cmake >/dev/null || ! command -v protoc >/dev/null; then
+        if ! command -v cmake >/dev/null || ! command -v protoc >/dev/null || [ ! -f /usr/include/google/protobuf/struct.proto ]; then
           apt-get update -q
-          apt-get install -yq --no-install-recommends cmake protobuf-compiler
+          apt-get install -yq --no-install-recommends cmake protobuf-compiler libprotobuf-dev
         fi
 
         if ! command -v rustup >/dev/null && [ ! -x "$HOME/.cargo/bin/rustup" ]; then
